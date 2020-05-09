@@ -9,11 +9,11 @@ require 'json'
 
 # puts vote['scrutin']['objet']['libelle']
 
-votes_array = ['<!DOCTYPE html>',
+deputes_array = ['<!DOCTYPE html>',
                '<html lang="en">',
                '<head>',
                '<meta charset="UTF-8">',
-               '<title>votes</title>',
+               '<title>deputes</title>',
                '<link rel="stylesheet" href="style.css">',
                '</head>',
                '<body>',
@@ -22,23 +22,42 @@ votes_array = ['<!DOCTYPE html>',
 Dir[File.join(__dir__, 'data/AMO10_deputes_actifs_mandats_actifs_organes_XV/acteur/*')].each do |filep|
   serialized_vote = File.read(filep)
   depute = JSON.parse(serialized_vote)
-  votes_array << '<div class="depute">'
-  votes_array << "<strong>#{depute['acteur']['etatCivil']['ident']['prenom']} #{depute['acteur']['etatCivil']['ident']['nom']}</strong>" + '<br>'
-  votes_array << "né(e) le : #{depute['acteur']['etatCivil']['infoNaissance']['dateNais']} à #{depute['acteur']['etatCivil']['infoNaissance']['villeNais']}" + '<br>'
-  votes_array << "#{depute['acteur']['profession']['libelleCourant']}" + '<br>'
-  votes_array << "decla patrimoine : <a href='#{depute['acteur']['uri_hatvp']}'>#{depute['acteur']['uri_hatvp']}</a>" + '<br>'
+  @deputeId = depute['acteur']['uid']['#text']
+  deputes_array << '<div class="depute">'
+  deputes_array << "<strong>#{depute['acteur']['etatCivil']['ident']['prenom']} #{depute['acteur']['etatCivil']['ident']['nom']}</strong>" + '<br>'
+  deputes_array << "né(e) le : #{depute['acteur']['etatCivil']['infoNaissance']['dateNais']} à #{depute['acteur']['etatCivil']['infoNaissance']['villeNais']}" + '<br>'
+  deputes_array << "#{depute['acteur']['profession']['libelleCourant']}" + '<br>'
+  deputes_array << "decla patrimoine : <a href='#{depute['acteur']['uri_hatvp']}'>#{depute['acteur']['uri_hatvp']}</a>" + '<br>'
   depute['acteur']['adresses']['adresse'][1..-1].each do |adresse|
-    votes_array << "adresse #{adresse['typeLibelle']} : #{adresse['valElec']}" + '<br>'
+    deputes_array << "adresse #{adresse['typeLibelle']} : #{adresse['valElec']}" + '<br>'
   end
   depute['acteur']['mandats']['mandat'].each do |mandat|
-    votes_array << "#{mandat['infosQualite']['libQualite']} de #{mandat['organes']['organeRef']} depuis le #{mandat['dateDebut']}" + '<br>'
+    deputes_array << "#{mandat['infosQualite']['libQualite']} de #{mandat['organes']['organeRef']} depuis le #{mandat['dateDebut']}" + '<br>'
   end
-  votes_array << '-----------------' + '<br>'
-  votes_array << '</div>'
+  deputes_array << '-------' + '<br>'
+  deputes_array << "à l'initiave des dossiers parlementaires suivants :" + '<br>'
+  Dir[File.join(__dir__, 'data/dossiers_leg/dossierParlementaire/*')].each do |filepath|
+    serialized_leg = File.read(filepath)
+    leg = JSON.parse(serialized_leg)
+    unless leg['dossierParlementaire']['initiateur'].nil?
+      unless leg['dossierParlementaire']['initiateur']['acteurs'].nil?
+        if leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].class == String
+          p leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef']
+          if leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef'] == @deputeId
+            deputes_array << '>>' + leg['dossierParlementaire']['titreDossier']['titre'] + '<br>'
+            deputes_array << '>>' + leg['dossierParlementaire']['procedureParlementaire']['libelle'] + '<br>'
+            deputes_array << '-------' + '<br>'
+          end
+        end
+      end
+    end
+  end
+  deputes_array << '-----------------' + '<br>'
+  deputes_array << '</div>'
 end
 
-votes_array << '</div>'
-votes_array << '</body>'
-votes_array << '</html>'
+deputes_array << '</div>'
+deputes_array << '</body>'
+deputes_array << '</html>'
 
-File.write('index.html', votes_array.join("\n"), mode: 'w')
+File.write('index.html', deputes_array.join("\n"), mode: 'w')
