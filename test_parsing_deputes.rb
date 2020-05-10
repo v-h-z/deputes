@@ -17,12 +17,15 @@ deputes_array = ['<!DOCTYPE html>',
                '<link rel="stylesheet" href="style.css">',
                '</head>',
                '<body>',
-               '<div class="container">']
+               '<div class="container">',
+               "<div class='update-date'>last update : #{Time.now}</div><br>"]
+total_dep = Dir[File.join(__dir__, 'data/AMO10_deputes_actifs_mandats_actifs_organes_XV/acteur/*')].size
 
-Dir[File.join(__dir__, 'data/AMO10_deputes_actifs_mandats_actifs_organes_XV/acteur/*')].each do |filep|
+Dir[File.join(__dir__, 'data/AMO10_deputes_actifs_mandats_actifs_organes_XV/acteur/*')].each_with_index do |filep, index|
   serialized_vote = File.read(filep)
   depute = JSON.parse(serialized_vote)
-  @deputeId = depute['acteur']['uid']['#text']
+  p @depute_id = depute['acteur']['uid']['#text']
+  p "#{index} / #{total_dep}"
   deputes_array << '<div class="depute">'
   deputes_array << "<strong>#{depute['acteur']['etatCivil']['ident']['prenom']} #{depute['acteur']['etatCivil']['ident']['nom']}</strong>" + '<br>'
   deputes_array << "né(e) le : #{depute['acteur']['etatCivil']['infoNaissance']['dateNais']} à #{depute['acteur']['etatCivil']['infoNaissance']['villeNais']}" + '<br>'
@@ -39,25 +42,48 @@ Dir[File.join(__dir__, 'data/AMO10_deputes_actifs_mandats_actifs_organes_XV/acte
   Dir[File.join(__dir__, 'data/dossiers_leg/dossierParlementaire/*')].each do |filepath|
     serialized_leg = File.read(filepath)
     leg = JSON.parse(serialized_leg)
+    # puts JSON.pretty_generate(leg['dossierParlementaire']['initiateur'])
     unless leg['dossierParlementaire']['initiateur'].nil?
-      unless leg['dossierParlementaire']['initiateur']['acteurs'].nil?
-        if leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].class == String
-          p leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef']
-          if leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef'] == @deputeId
-            deputes_array << '>>' + leg['dossierParlementaire']['titreDossier']['titre'] + '<br>'
-            deputes_array << '>>' + leg['dossierParlementaire']['procedureParlementaire']['libelle'] + '<br>'
-            deputes_array << '-------' + '<br>'
+      # p leg['dossierParlementaire']['initiateur'][0]
+      if leg['dossierParlementaire']['initiateur'].key?("acteurs")
+        if leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].class == Hash
+          if leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef'] == @depute_id
+            p "match"
+            deputes_array << "- #{leg['dossierParlementaire']['titreDossier']['titre']} (#{leg['dossierParlementaire']['procedureParlementaire']['libelle']})" + '<br>'
+          end
+        elsif leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].class == Array
+          leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].each do |acteur|
+            if acteur['acteurRef'] == @depute_id
+              p "match"
+              deputes_array << "- #{leg['dossierParlementaire']['titreDossier']['titre']} (#{leg['dossierParlementaire']['procedureParlementaire']['libelle']})" + '<br>'
+            end
           end
         end
       end
     end
+    # p leg['dossierParlementaire']['uid']
+    # p leg['dossierParlementaire']['initiateur']
+    # p leg.include?("PA718784")
+    # unless leg['dossierParlementaire']['initiateur'].nil?
+    #   unless leg['dossierParlementaire']['initiateur']['acteurs'].nil?
+    #     if leg['dossierParlementaire']['initiateur']['acteurs']['acteur'].class == String
+          # p leg['dossierParlementaire']['initiateur']['acteurs']['acteur'][0]['acteurRef']
+          # if leg['dossierParlementaire']['initiateur']['acteurs']['acteur']['acteurRef'] == @deputeId
+          #   deputes_array << '>>' + leg['dossierParlementaire']['titreDossier']['titre'] + '<br>'
+          #   deputes_array << '>>' + leg['dossierParlementaire']['procedureParlementaire']['libelle'] + '<br>'
+          #   deputes_array << '-------' + '<br>'
+          # end
+    #     end
+    #   end
+    # end
   end
   deputes_array << '-----------------' + '<br>'
   deputes_array << '</div>'
 end
 
+deputes_array << "<div class='update-date'>end of process : #{Time.now}</div><br>"
 deputes_array << '</div>'
 deputes_array << '</body>'
 deputes_array << '</html>'
 
-File.write('index.html', deputes_array.join("\n"), mode: 'w')
+File.write('deputes.html', deputes_array.join("\n"), mode: 'w')
